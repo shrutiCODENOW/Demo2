@@ -1,0 +1,16 @@
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_inventory_log_by_id(request, pk):
+    """
+    Retrieve an inventory log entry by ID.
+    """
+    try:
+        # Fetch the inventory log by ID
+        inventory_log = InventoryLog.objects.get(pk=pk, user=request.user)
+    except InventoryLog.DoesNotExist:
+        return Response({"error": "Inventory log not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Serialize the inventory log data
+    serializer = InventoryLogSerializer(inventory_log)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
