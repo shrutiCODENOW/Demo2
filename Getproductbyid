@@ -1,0 +1,16 @@
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_product_by_id(request, pk):
+    """
+    Retrieve a product entry by ID.
+    """
+    try:
+        # Fetch the product by ID
+        product = Product.objects.get(pk=pk)
+    except Product.DoesNotExist:
+        return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Serialize the product data
+    serializer = ProductSerializer(product)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
