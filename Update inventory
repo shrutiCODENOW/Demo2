@@ -17,3 +17,46 @@ def update_inventory_log(request, pk):
             status=status.HTTP_200_OK
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_inventory_log(request, pk):
+    """
+    Update an inventory log entry by ID and adjust the product stock accordingly.
+    """
+    try:
+        inventory_log = InventoryLog.objects.get(pk=pk, user=request.user)
+        product = inventory_log.product
+    except InventoryLog.DoesNotExist:
+        return Response({"error": "Inventory log not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
+
+    original_quantity = inventory_log.quantity
+    original_action = inventory_log.action
+
+    serializer = InventoryLogSerializer(inventory_log, data=request.data, partial=True)
+    if serializer.is_valid():
+        # Reverse the original stock adjustment
+        if original_action.lower() == 'add':
+            product.stock_quantity -= original_quantity
+        elif original_action.lower() == 'remove':
+            product.stock_quantity += original_quantity
+
+        # Apply the new adjustment
+        updated_action = serializer.validated_data.get('action', original_action)
+        updated_quantity = serializer.validated_data.get('quantity', original_quantity)
+
+        if updated_action.lower() == 'add':
+            product.stock_quantity += updated_quantity
+        elif updated_action.lower() == 'remove':
+            if product.stock_quantity < updated_quantity:
+                return Response({"error": "Insufficient stock to remove"}, status=status.HTTP_400_BAD_REQUEST)
+            product.stock_quantity -= updated_quantity
+
+        product.save()  # Save the updated stock quantity
+
+        # Save the updated inventory log
+        serializer.save()
+        return Response(
+            {"message": "Inventory log updated successfully and stock adjusted", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
