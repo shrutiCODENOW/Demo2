@@ -69,4 +69,29 @@ class OrderSerializer(serializers.ModelSerializer):
             'status'
         ]
         
-  
+  class InventoryLogSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source='product.name')
+    user_username = serializers.ReadOnlyField(source='user.username')
+    quantity=serializers.SerializerMethodField()
+
+    def get_quantity(self,obj):
+        if obj.action == 'Add':
+            return f'+{obj.quantity}'
+        elif obj.action =='Remove':
+            return f"-{obj.quantity}"
+        return obj.quantity
+            
+
+    class Meta:
+        model = InventoryLog
+        fields = [
+            'id',
+            'product',
+            'product_name',
+            'user',
+            'user_username',
+            'quantity',
+            'action',
+            'created_at'
+        ]
+    
