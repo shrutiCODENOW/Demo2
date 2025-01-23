@@ -1,0 +1,19 @@
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_inventory_log(request, pk):
+    """
+    Update an inventory log entry by ID.
+    """
+    try:
+        inventory_log = InventoryLog.objects.get(pk=pk, user=request.user)
+    except InventoryLog.DoesNotExist:
+        return Response({"error": "Inventory log not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = InventoryLogSerializer(inventory_log, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Inventory log updated successfully", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
