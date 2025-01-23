@@ -1,0 +1,43 @@
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def auto_create_inventory_by_product_id(request, product_id):
+    """
+    Automatically create an inventory log entry by product ID.
+    The quantity is taken from the product's stock, and the action is 'add'.
+    """
+    try:
+        # Fetch the product by ID
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return Response({"error": "Product with the given ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Ensure stock_quantity is valid
+    if product.stock_quantity is None or product.stock_quantity <= 0:
+        return Response({"error": "Product stock quantity must be greater than 0"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Automatically populate inventory log fields
+    data = {
+        'product': product.id,
+        'user': request.user.id,  # Associate the logged-in user
+        'quantity': product.stock_quantity,  # Use product's stock quantity
+        'action': 'add',  # Default action
+    }
+
+    # Serialize the data and create the inventory log
+    serializer = InventoryLogSerializer(data=data)
+    if serializer.is_valid():
+        # Save the inventory log
+        inventory_log = serializer.save()
+
+        # Since the quantity formatting is handled in the serializer, we want to set the
+        # formatted quantity manually to prevent conflicts.
+        inventory_log.quantity = f'+{product.stock_quantity}'  # Format the quantity with the '+' sign
+        inventory_log.save()
+
+        return Response(
+            {"message": "Inventory log created successfully", "data": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
+
+    # If serializer is not valid, return the errors
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
