@@ -1,1 +1,19 @@
-
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_inventory_log(request, pk):
+    try:
+        inventory_log = InventoryLog.objects.get(pk=pk, user=request.user)
+        product = inventory_log.product
+        
+        # Reverse the stock adjustment
+        if inventory_log.action.lower() == 'add':
+            product.stock_quantity -= inventory_log.quantity
+        elif inventory_log.action.lower() == 'remove':
+            product.stock_quantity += inventory_log.quantity
+        
+        product.save()  # Save the updated stock quantity
+        inventory_log.delete()  # Delete the log
+        
+        return Response({"message": "Inventory log deleted successfully and stock adjusted"}, status=status.HTTP_204_NO_CONTENT)
+    except InventoryLog.DoesNotExist:
+        return Response({"error": "Inventory log not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
