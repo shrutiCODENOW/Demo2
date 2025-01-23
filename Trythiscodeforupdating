@@ -1,0 +1,52 @@
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_inventory_log(request, pk):
+    """
+    Update an inventory log entry by ID and adjust the product stock accordingly.
+    """
+    try:
+        # Retrieve the inventory log and product details
+        inventory_log = InventoryLog.objects.get(pk=pk, user=request.user)
+        product = inventory_log.product
+    except InventoryLog.DoesNotExist:
+        return Response({"error": "Inventory log not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
+
+    original_quantity = inventory_log.quantity
+    original_action = inventory_log.action
+
+    # Fetch updated data from the request body using 'get()'
+    updated_quantity = request.data.get('quantity', original_quantity)  # Default to original if not provided
+    updated_action = request.data.get('action', original_action)  # Default to original if not provided
+
+    # Reverse the previous adjustment (to undo it)
+    if original_action.lower() == 'add':
+        product.stock_quantity -= original_quantity  # Undo the 'add' action
+    elif original_action.lower() == 'remove':
+        product.stock_quantity += original_quantity  # Undo the 'remove' action
+
+    # Now apply the updated action and quantity
+    if updated_action.lower() == 'add':
+        product.stock_quantity += updated_quantity  # Apply the 'add' action
+    elif updated_action.lower() == 'remove':
+        # Ensure there's enough stock to remove
+        if product.stock_quantity < updated_quantity:
+            return Response({"error": "Insufficient stock to remove"}, status=status.HTTP_400_BAD_REQUEST)
+        product.stock_quantity -= updated_quantity  # Apply the 'remove' action
+
+    # Save the updated product stock
+    product.save()
+
+    # Now update the InventoryLog with the new values
+    inventory_log.quantity = updated_quantity
+    inventory_log.action = updated_action
+    inventory_log.save()
+
+    return Response(
+        {"message": "Inventory log updated successfully and stock adjusted", "data": {
+            "product": inventory_log.product.name,
+            "quantity": updated_quantity,
+            "action": updated_action,
+            "stock_quantity": product.stock_quantity  # Show the updated stock quantity
+        }},
+        status=status.HTTP_200_OK
+    )
