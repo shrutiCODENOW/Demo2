@@ -1,0 +1,59 @@
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic
+def create_inventory_log(request):
+    """
+    Create a new inventory log entry by product name and update product quantity.
+    """
+    data = request.data
+
+    # Fetch product by name
+    product_name = data.get('product_name')
+    if not product_name:
+        return Response({"error": "Product name is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        product = Product.objects.get(name=product_name)
+    except Product.DoesNotExist:
+        return Response({"error": "Product with the given name does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Ensure action and quantity are provided in the request
+    action = data.get('action')
+    quantity = data.get('quantity')
+
+    if not action:
+        return Response({"error": "Action is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if quantity is None:  # Allow `0` as a valid quantity
+        return Response({"error": "Quantity is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Convert quantity to an integer
+    try:
+        quantity = int(quantity)
+    except ValueError:
+        return Response({"error": "Quantity must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Prepare data for the serializer
+    data['product'] = product.id
+    data['user'] = request.user.id  # Associate the inventory log with the logged-in user
+
+    serializer = InventoryLogSerializer(data=data)
+    if serializer.is_valid():
+        # Update product's stock quantity based on the action
+        if action == 'add':
+            product.stock_quantity += quantity
+        elif action == 'remove':
+            if product.stock_quantity < quantity:
+                return Response({"error": "Insufficient stock to remove"}, status=status.HTTP_400_BAD_REQUEST)
+            product.stock_quantity -= quantity
+
+        product.save()  # Save the updated stock quantity
+
+        # Save the inventory log
+        serializer.save()
+        return Response(
+            {"message": "Inventory log created and stock quantity updated successfully", "data": serializer.data},
+            status=status.HTTP_201_CREATED
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
