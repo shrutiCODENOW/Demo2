@@ -1,0 +1,53 @@
+# views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Order, Product, InventoryLog
+from .serializers import OrderSerializer
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_order_status(request, order_id):
+    try:
+        # Retrieve the order
+        order = Order.objects.get(id=order_id)
+
+        # Check if the status is being updated to "DELIVERED"
+        if order.status == 'DELIVERED':
+            return Response(
+                {"detail": "Order is already delivered."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Update the order status to "DELIVERED"
+        order.status = 'DELIVERED'
+        order.save()
+
+        # Update the product's stock quantity
+        product = order.product
+        product.stock_quantity -= order.quantity
+        product.save()
+
+        # Log the inventory change
+        InventoryLog.objects.create(
+            product=product,
+            user=request.user,
+            quantity=order.quantity,
+            action='remove'
+        )
+
+        return Response({
+            "message": "Order status updated to delivered!",
+            "order_id": order.id,
+            "status": order.status,
+            "product_name": product.name,
+            "quantity": order.quantity,
+            "total_price": order.total_price
+        }, status=status.HTTP_200_OK)
+
+    except Order.DoesNotExist:
+        return Response(
+            {"detail": "Order not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
