@@ -1,0 +1,14 @@
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_inventory_log(request, pk):
+    """
+    Delete an inventory log entry by ID.
+    """
+    try:
+        inventory_log = InventoryLog.objects.get(pk=pk, user=request.user)
+    except InventoryLog.DoesNotExist:
+        return Response({"error": "Inventory log not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
+    
+    inventory_log.delete()
+    return Response({"message": "Inventory log deleted successfully"}, status=status.HTTP_204
+_NO_CONTENT)
