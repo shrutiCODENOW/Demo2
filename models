@@ -46,4 +46,27 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} by {self.user.username}"
+
+class OrderSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source='product.name')
+    user_username = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = Order
+        fields = [
+            'id',
+            'product',
+            'product_name',
+            'user',
+            'customer_name',
+            'customer_address',
+            'customer_phone_number'
+            'user_username',
+            'quantity',
+            'total_price',
+            'created_at',
+            'updated_at',
+            'status'
+        ]
+        
   
