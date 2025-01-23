@@ -1,0 +1,21 @@
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def inventory_list(request):
+    if request.method == 'GET':
+        # Filter inventory logs by the logged-in user
+        inventory_logs = InventoryLog.objects.filter(user=request.user)
+        serializer = InventoryLogSerializer(inventory_logs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    elif request.method == 'POST':
+        # Create a new inventory log with the logged-in user
+        data = request.data
+        data['user'] = request.user.id  # Automatically set the user to the logged-in user
+        serializer = InventoryLogSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Inventory log created successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
