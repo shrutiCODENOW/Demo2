@@ -1,0 +1,70 @@
+# views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Order, Product
+from .serializers import OrderSerializer
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def place_order(request):
+    if request.method == 'POST':
+        # Deserialize the request data to validate and create the order
+        serializer = OrderSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            product_name = serializer.validated_data['product_name']
+            quantity = serializer.validated_data['quantity']
+            
+            # Fetch the product by name
+            try:
+                product = Product.objects.get(name=product_name)
+            except Product.DoesNotExist:
+                return Response(
+                    {"detail": f"Product '{product_name}' does not exist."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check if the ordered quantity exceeds the available stock
+            if product.stock_quantity < quantity:
+                return Response(
+                    {"detail": f"Ordered quantity exceeds the available stock of {product.stock_quantity}."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Calculate total price
+            total_price = product.price * quantity
+
+            # Create the order
+            order = Order.objects.create(
+                product=product,
+                user=request.user,
+                customer_name=request.data.get('customer_name'),
+                customer_address=request.data.get('customer_address'),
+                customer_phone_number=request.data.get('customer_phone_number'),
+                quantity=quantity,
+                total_price=total_price,
+            )
+
+            # Decrease the product's stock by the ordered quantity
+            product.stock_quantity -= quantity
+            product.save()
+
+            # Return the response with the full order details
+            return Response({
+                "message": "Order placed successfully!",
+                "order_id": order.id,
+                "product_name": order.product.name,
+                "quantity": order.quantity,
+                "total_price": order.total_price,
+                "status": order.status,
+                "customer_name": order.customer_name,
+                "customer_address": order.customer_address,
+                "customer_phone_number": order.customer_phone_number,
+                "created_at": order.created_at,
+                "updated_at": order.updated_at,
+                "user_username": order.user.username,  # Added user username field to response
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
