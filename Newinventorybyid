@@ -1,0 +1,29 @@
+# views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .models import Product, InventoryLog
+from .serializers import InventoryLogSerializer
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # Ensures only authenticated users can access this view
+def create_inventory_log(request, product_id):
+    try:
+        # Fetch the product by ID
+        product = Product.objects.get(id=product_id)
+
+        # Automatically create an inventory log
+        inventory_log = InventoryLog.objects.create(
+            product=product,
+            quantity=product.stock_quantity,  # Use the product's current stock
+            action='add',  # Action is 'add'
+            user=request.user  # Assume the user is authenticated
+        )
+
+        # Serialize the created inventory log
+        serializer = InventoryLogSerializer(inventory_log)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
