@@ -1,0 +1,33 @@
+# views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .models import Product, Order  # Assuming you have an Order model
+from .serializers import ProductSerializer, OrderSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Ensures only authenticated users can access
+def alert_view(request):
+    # Fetch products with stock less than the threshold
+    low_stock_products = Product.objects.filter(stock_quantity__lt=models.F('threshold'))
+    
+    # Fetch products that are out of stock
+    out_of_stock_products = Product.objects.filter(stock_quantity=0)
+    
+    # Fetch pending orders (assuming you have a status field in your Order model)
+    pending_orders = Order.objects.filter(status='pending')
+
+    # Serialize data
+    low_stock_serializer = ProductSerializer(low_stock_products, many=True)
+    out_of_stock_serializer = ProductSerializer(out_of_stock_products, many=True)
+    pending_orders_serializer = OrderSerializer(pending_orders, many=True)
+
+    # Prepare the response
+    response_data = {
+        "low_stock_products": low_stock_serializer.data,
+        "out_of_stock_products": out_of_stock_serializer.data,
+        "pending_orders": pending_orders_serializer.data
+    }
+    
+    return Response(response_data, status=status.HTTP_200_OK)
