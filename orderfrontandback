@@ -1,0 +1,382 @@
+import React, { useState, useEffect } from "react";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  TextField,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Select,
+  MenuItem as MuiMenuItem,
+} from "@mui/material";
+import { Link } from "react-router-dom";
+import axios from "axios";
+
+function Orders() {
+  const [view, setView] = useState("newOrder");
+  const [products, setProducts] = useState([]);
+  const [order, setOrder] = useState({ customerName: "", customerPhone: "", items: [], totalPrice: 0 });
+  const [previousOrders, setPreviousOrders] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  useEffect(() => {
+    // Fetch available products
+    axios.get("http://localhost:8098/api/products/").then((res) => setProducts(res.data));
+    // Fetch previous orders
+    axios.get("http://localhost:8198/api/orders/").then((res) => setPreviousOrders(res.data));
+  }, []);
+
+  const calculateTotalPrice = () => {
+    const total = order.items.reduce((sum, item) => {
+      const product = products.find((p) => p.id === item.productId);
+      return sum + (product.price * item.quantity || 0);
+    }, 0);
+    setOrder({ ...order, totalPrice: total });
+  };
+
+  const handlePlaceOrder = () => {
+    axios
+      .post("http://localhost:8098/api/orders/", order)
+      .then(() => {
+        alert("Order placed successfully!");
+        setOrder({ customerName: "", customerPhone: "", items: [], totalPrice: 0 });
+      })
+      .catch((err) => console.error(err));
+  };
+
+  const handleStatusChange = (id, status) => {
+    axios.patch(`http://localhost:8098/api/orders/${id}/`, { status }).then(() => {
+      const updatedOrders = previousOrders.map((o) => (o.id === id ? { ...o, status } : o));
+      setPreviousOrders(updatedOrders);
+    });
+  };
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: "#1976d2" }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/inventory-log">
+            Inventory Log
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={Link} to="/graphs">
+            Graphs
+          </Button>
+          <Button color="inherit" onClick={handleMenuClick}>
+            Profile
+          </Button>
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+            <MenuItem component={Link} to="/profile">
+              View Profile
+            </MenuItem>
+            <MenuItem component={Link} to="/login">
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Content */}
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+            Orders
+        </Typography>
+        <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
+          <Button
+            variant={view === "newOrder" ? "contained" : "outlined"}
+            color="primary"
+            onClick={() => setView("newOrder")}
+          >
+            New Order
+          </Button>
+          <Button
+            variant={view === "previousOrders" ? "contained" : "outlined"}
+            color="primary"
+            onClick={() => setView("previousOrders")}
+          >
+            Previous Orders
+          </Button>
+        </Box>
+
+        {view === "newOrder" && (
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Typography variant="h5" sx={{ mb: 3 }}>
+              New Order
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                label="Customer Name"
+                fullWidth
+                value={order.customerName}
+                onChange={(e) => setOrder({ ...order, customerName: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                label="Customer Phone Number"
+                fullWidth
+                value={order.customerPhone}
+                onChange={(e) => setOrder({ ...order, customerPhone: e.target.value })}
+              />
+            </Box>
+            {products.map((product) => (
+              <Box key={product.id} sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <Typography sx={{ flex: 1 }}>{product.name} (${product.price})</Typography>
+                <TextField
+                  type="number"
+                  label="Quantity"
+                  sx={{ flex: 1 }}
+                  onChange={(e) => {
+                    const items = order.items.filter((item) => item.productId !== product.id);
+                    if (e.target.value > 0) {
+                      items.push({ productId: product.id, quantity: +e.target.value });
+                    }
+                    setOrder({ ...order, items });
+                  }}
+                  onBlur={calculateTotalPrice}
+                />
+              </Box>
+            ))}
+            <Typography variant="h6" sx={{ mt: 3 }}>
+              Total Price: ${order.totalPrice}
+            </Typography>
+            <Box sx={{ mt: 3 }}>
+              <Button variant="contained" color="success" sx={{ mr: 2 }} onClick={handlePlaceOrder}>
+                Place Order
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={() => setOrder({ customerName: "", customerPhone: "", items: [], totalPrice: 0 })}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Paper>
+        )}
+
+        {view === "previousOrders" && (
+          <TableContainer component={Paper}>
+            <Typography variant="h5" sx={{ mb: 2 }}>
+              Previous Orders
+            </Typography>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Order ID</TableCell>
+                  <TableCell>Customer Name</TableCell>
+                  <TableCell>Phone Number</TableCell>
+                  <TableCell>Products</TableCell>
+                  <TableCell>Total Price</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {previousOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell>{order.id}</TableCell>
+                    <TableCell>{order.customerName}</TableCell>
+                    <TableCell>{order.customerPhone}</TableCell>
+                    <TableCell>
+                      {order.items
+                        .map((item) => {
+                          const product = products.find((p) => p.id === item.productId);
+                          return `${product.name} (${item.quantity})`;
+                        })
+                        .join(", ")}
+                    </TableCell>
+                    <TableCell>${order.totalPrice}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                      >
+                        <MuiMenuItem value="Order Pending">Order Pending</MuiMenuItem>
+                        <MuiMenuItem value="Order Approved">Order Approved</MuiMenuItem>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+export default Orders;
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def place_order(request):
+    if request.method == 'POST':
+        # Deserialize the request data to validate and create the order
+        serializer = OrderSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            product_name = request.data.get('product_name')
+            quantity = serializer.validated_data['quantity']
+            
+            # Fetch the product by name
+            try:
+                product = Product.objects.get(name=product_name)
+            except Product.DoesNotExist:
+                return Response(
+                    {"detail": f"Product '{product_name}' does not exist."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check if the ordered quantity exceeds the available stock
+            if product.stock_quantity < quantity:
+                return Response(
+                    {"detail": f"Ordered quantity exceeds the available stock of {product.stock_quantity}."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Calculate total price
+            total_price = product.price * quantity
+
+            # Create the order
+            order = Order.objects.create(
+                product=product,
+                user=request.user,
+                customer_name=request.data.get('customer_name'),
+                customer_address=request.data.get('customer_address'),
+                customer_phone_number=request.data.get('customer_phone_number'),
+                quantity=quantity,
+                total_price=total_price,
+            )
+
+           
+
+            # Return the response with the full order details
+            return Response({
+                "message": "Order placed successfully!",
+                "order_id": order.id,
+                "product_name": order.product.name,
+                "quantity": order.quantity,
+                "total_price": order.total_price,
+                "status": order.status,
+                "customer_name": order.customer_name,
+                "customer_address": order.customer_address,
+                "customer_phone_number": order.customer_phone_number,
+                "created_at": order.created_at,
+                "updated_at": order.updated_at,
+                "user_username": order.user.username,  # Added user username field to response
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_order_status(request, order_id):
+    try:
+        # Retrieve the order
+        order = Order.objects.get(id=order_id)
+
+        # Check if the status is being updated to "DELIVERED"
+        if order.status == 'DELIVERED':
+            return Response(
+                {"detail": "Order is already delivered."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Update the order status to "DELIVERED"
+        order.status = 'DELIVERED'
+        order.save()
+
+        # Update the product's stock quantity
+        product = order.product
+        product.stock_quantity -= order.quantity
+        product.save()
+
+        # Log the inventory change
+        InventoryLog.objects.create(
+            product=product,
+            user=request.user,
+            quantity=-(order.quantity),
+            action='remove'
+        )
+
+        return Response({
+            "message": "Order status updated to delivered!",
+            "order_id": order.id,
+            "status": order.status,
+            "product_name": product.name,
+            "quantity": order.quantity,
+            "total_price": order.total_price
+        }, status=status.HTTP_200_OK)
+
+    except Order.DoesNotExist:
+        return Response(
+            {"detail": "Order not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+# Get all orders for a particular user
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_orders(request):
+    # Get all orders for the currently authenticated user
+    orders = Order.objects.filter(user=request.user)
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
+
+
+# Get a specific order by ID
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_order_by_id(request, order_id):
+    try:
+        # Get the order by ID
+        order = Order.objects.get(id=order_id, user=request.user)  # Only allow users to fetch their own orders
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+
+    except Order.DoesNotExist:
+        return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+# Delete an order
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_order(request, order_id):
+    try:
+        # Get the order by ID
+        order = Order.objects.get(id=order_id, user=request.user)  # Only allow users to delete their own orders
+        order.delete()
+        return Response({"detail": "Order deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+    except Order.DoesNotExist:
+        return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
