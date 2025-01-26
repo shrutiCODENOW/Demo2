@@ -1,0 +1,192 @@
+import React, { useState, useEffect } from 'react';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  Grid,
+  Paper,
+  CircularProgress,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+
+function Dashboard() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+
+  const handleProfileMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken'); // Get token from localStorage
+        const response = await axios.get('http://127.0.0.1:8000/api/inventory/dashboard', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Typography variant="h6" color="error">
+          Failed to load dashboard data.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/inventory-log">
+            Inventory Log
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={Link} to="/graphs">
+            Graphs
+          </Button>
+          <Button color="inherit" onClick={handleProfileMenuClick}>
+            Profile
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem component={Link} to="/profile">
+              View Profile
+            </MenuItem>
+            <MenuItem component={Link} to="/login">
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Dashboard Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Dashboard
+        </Typography>
+
+        <Grid container spacing={3}>
+          {/* Total Products */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Total Products
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {dashboardData.total_products}
+              </Typography>
+            </Paper>
+          </Grid>
+
+          {/* Total Stock Quantity */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Total Stock Quantity
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {dashboardData.total_stock_quantity}
+              </Typography>
+            </Paper>
+          </Grid>
+
+          {/* Total Inventory Logs */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Total Inventory Logs
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {dashboardData.total_inventory_logs}
+              </Typography>
+            </Paper>
+          </Grid>
+
+          {/* Total Profit */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Total Profit
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                ₹{dashboardData.total_profit.toFixed(2)}
+              </Typography>
+            </Paper>
+          </Grid>
+
+          {/* Total Orders */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Total Orders
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {dashboardData.total_orders}
+              </Typography>
+            </Paper>
+          </Grid>
+
+          {/* Total Stock Value */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Total Stock Value
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                ₹{dashboardData.total_stock_value.toFixed(2)}
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
+  );
+}
+
+export default Dashboard;
