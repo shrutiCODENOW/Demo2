@@ -60,3 +60,65 @@ def update_inventory_log(request, pk):
             status=status.HTTP_200_OK
         )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import InventoryLog, Product
+from .serializers import InventoryLogSerializer
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_inventory_log(request, pk):
+    """
+    Update an inventory log entry by ID and adjust the product stock quantity accordingly.
+    """
+    try:
+        inventory_log = InventoryLog.objects.get(pk=pk, user=request.user)
+        product = inventory_log.product
+    except InventoryLog.DoesNotExist:
+        return Response({"error": "Inventory log not found or not accessible"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Original quantity and action before update
+    original_quantity = inventory_log.quantity
+    original_action = inventory_log.action.lower()
+
+    # Deserialize and validate the data
+    serializer = InventoryLogSerializer(inventory_log, data=request.data, partial=True)
+    if serializer.is_valid():
+        # Reverse the original stock adjustment
+        if original_action == 'add':
+            product.stock_quantity -= original_quantity
+        elif original_action == 'remove':
+            product.stock_quantity += abs(original_quantity)
+
+        # New values from the request
+        updated_action = request.data.get('action', original_action).lower()
+        updated_quantity = abs(int(request.data.get('quantity', original_quantity)))
+
+        # Adjust the stock based on the updated action
+        if updated_action == 'add':
+            product.stock_quantity += updated_quantity
+            inventory_log.quantity = updated_quantity  # Positive quantity for "add"
+        elif updated_action == 'remove':
+            if product.stock_quantity < updated_quantity:
+                return Response({"error": "Insufficient stock to remove"}, status=status.HTTP_400_BAD_REQUEST)
+            product.stock_quantity -= updated_quantity
+            inventory_log.quantity = -updated_quantity  # Negative quantity for "remove"
+
+        # Save the updated stock and inventory log
+        product.save()
+        inventory_log.action = updated_action
+        inventory_log.save()
+
+        # Prepare response data
+        response_data = InventoryLogSerializer(inventory_log).data
+        return Response(
+            {"message": "Inventory log updated successfully and stock adjusted", "data": response_data},
+            status=status.HTTP_200_OK
+        )
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
