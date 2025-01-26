@@ -1,0 +1,193 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  Paper,
+  TextField,
+  Grid,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+
+function Profile() {
+  const [user, setUser] = useState({
+    username: '',
+    email: '',
+    password: '',
+  });
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  useEffect(() => {
+    // Fetch user data from the backend
+    axios
+      .get('http://127.0.0.1:8198/api/profile/')
+      .then((response) => {
+        setUser(response.data);
+      })
+      .catch((error) => console.error('Error fetching user data:', error));
+  }, []);
+
+  const handleInputChange = (e) => {
+    setUser({ ...user, [e.target.name]: e.target.value });
+  };
+
+  const handleProfileMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    axios
+      .put('http://127.0.0.1:8000/api/user-profile/', user)
+      .then(() => {
+        alert('Profile updated successfully!');
+      })
+      .catch((error) => console.error('Error updating profile:', error));
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/inventory-log">
+            Inventory Log
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={Link} to="/graphs">
+            Graphs
+          </Button>
+          <Button color="inherit" onClick={handleProfileMenuClick}>
+            Profile
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem component={Link} to="/profile">
+              View Profile
+            </MenuItem>
+            <MenuItem component={Link} to="/login">
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Profile Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Profile
+        </Typography>
+        <Paper elevation={3} sx={{ borderRadius: 2, p: 3 }}>
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={2}>
+              {/* Username Field */}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Username"
+                  name="username"
+                  value={user.username}
+                  disabled
+                  fullWidth
+                />
+              </Grid>
+
+              {/* Email Field */}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Email"
+                  name="email"
+                  value={user.email}
+                  onChange={handleInputChange}
+                  fullWidth
+                />
+              </Grid>
+
+              {/* Password Field */}
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={user.password}
+                  onChange={handleInputChange}
+                  fullWidth
+                />
+              </Grid>
+            </Grid>
+
+            <Box sx={{ mt: 3 }}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+              >
+                Update Profile
+              </Button>
+            </Box>
+          </form>
+        </Paper>
+      </Box>
+    </Box>
+  );
+}
+
+export default Profile;
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])  # Ensure only authenticated users can access
+def profile_view(request):
+    user = request.user  # Get the authenticated user
+
+    if request.method == 'GET':
+        # Serialize user data
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # Ensure only authenticated users can access
+def change_password_view(request):
+    user = request.user  # Get the authenticated user
+    serializer = ChangePasswordSerializer(data=request.data)
+
+    if serializer.is_valid():
+        old_password = serializer.validated_data['old_password']
+        new_password = serializer.validated_data['new_password']
+
+        # Check if the old password is correct
+        if not user.check_password(old_password):
+            return Response({"old_password": "Old password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Set the new password
+        user.set_password(new_password)
+        user.save()
+
+        # Update the session to prevent logout
+        update_session_auth_hash(request, user)
+
+        return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
