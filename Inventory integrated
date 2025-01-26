@@ -1,0 +1,283 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  InputAdornment,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+
+function InventoryLog() {
+  const [logs, setLogs] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [openUpdateDialog, setOpenUpdateDialog] = useState(false);
+  const [currentLog, setCurrentLog] = useState(null);
+  const [updatedQuantity, setUpdatedQuantity] = useState(null);
+  const [updatedAction, setUpdatedAction] = useState('');
+
+  useEffect(() => {
+    axios
+      .get('http://127.0.0.1:8098/inventory-log/')
+      .then((response) => setLogs(response.data))
+      .catch((error) => console.error(error));
+  }, []);
+
+  const handleProfileMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleViewClick = (log) => {
+    setCurrentLog(log);
+    setOpenViewDialog(true);
+  };
+
+  const handleCloseViewDialog = () => {
+    setOpenViewDialog(false);
+    setCurrentLog(null);
+  };
+
+  const handleUpdateClick = (log) => {
+    setCurrentLog(log);
+    setUpdatedQuantity(log.quantity);
+    setUpdatedAction(log.action);
+    setOpenUpdateDialog(true);
+  };
+
+  const handleCloseUpdateDialog = () => {
+    setOpenUpdateDialog(false);
+    setUpdatedQuantity(null);
+    setUpdatedAction('');
+    setCurrentLog(null);
+  };
+
+  const handleUpdateSubmit = () => {
+    axios
+      .patch(`http://127.0.0.1:8098/inventory-log/${currentLog.id}/`, {
+        quantity: updatedQuantity,
+        action: updatedAction,
+      })
+      .then((response) => {
+        setLogs((prevLogs) =>
+          prevLogs.map((log) =>
+            log.id === currentLog.id ? { ...log, ...response.data } : log
+          )
+        );
+        handleCloseUpdateDialog();
+      })
+      .catch((error) => console.error(error));
+  };
+
+  const handleDeleteClick = (logId) => {
+    axios
+      .delete(`http://127.0.0.1:8098/inventory-log/${logId}/`)
+      .then(() => {
+        setLogs((prevLogs) => prevLogs.filter((log) => log.id !== logId));
+      })
+      .catch((error) => console.error(error));
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/inventory-log">
+            Inventory Log
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={Link} to="/graphs">
+            Graphs
+          </Button>
+          <Button color="inherit" onClick={handleProfileMenuClick}>
+            Profile
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem component={Link} to="/profile">
+              View Profile
+            </MenuItem>
+            <MenuItem component={Link} to="/login">
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Inventory Log Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Inventory Log
+        </Typography>
+
+        {/* Inventory Log Table */}
+        <Paper elevation={3} sx={{ borderRadius: 2, p: 3 }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Product ID</TableCell>
+                  <TableCell>Product Name</TableCell>
+                  <TableCell>Quantity</TableCell>
+                  <TableCell>Date & Time</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>{log.product_id}</TableCell>
+                    <TableCell>{log.product_name}</TableCell>
+                    <TableCell
+                      sx={{
+                        color: log.quantity < 0 ? 'red' : 'green',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      {log.quantity}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(log.date_time).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      {/* View Icon */}
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleViewClick(log)}
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                      {/* Edit Icon */}
+                      <IconButton
+                        color="secondary"
+                        onClick={() => handleUpdateClick(log)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      {/* Delete Icon */}
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDeleteClick(log.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Box>
+
+      {/* View Dialog */}
+      <Dialog open={openViewDialog} onClose={handleCloseViewDialog}>
+        <DialogTitle>Inventory Log Details</DialogTitle>
+        <DialogContent>
+          {currentLog && (
+            <>
+              <Typography variant="body1" gutterBottom>
+                <strong>Product ID:</strong> {currentLog.product_id}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                <strong>Product Name:</strong> {currentLog.product_name}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                <strong>Quantity:</strong> {currentLog.quantity}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                <strong>Date & Time:</strong>{' '}
+                {new Date(currentLog.date_time).toLocaleString()}
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseViewDialog} color="secondary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Update Dialog */}
+      <Dialog open={openUpdateDialog} onClose={handleCloseUpdateDialog}>
+        <DialogTitle>Update Inventory Log</DialogTitle>
+        <DialogContent>
+          {currentLog && (
+            <>
+              <TextField
+                label="Quantity"
+                type="number"
+                value={updatedQuantity}
+                onChange={(e) => setUpdatedQuantity(e.target.value)}
+                fullWidth
+                margin="normal"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">Qty</InputAdornment>
+                  ),
+                }}
+              />
+              <TextField
+                label="Action"
+                value={updatedAction}
+                onChange={(e) => setUpdatedAction(e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseUpdateDialog} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateSubmit} color="primary">
+            Update
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+export default InventoryLog;
