@@ -348,3 +348,172 @@ function Profile() {
 }
 
 export default Profile;
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Paper,
+  Grid,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Divider,
+  TextField,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+
+function Profile() {
+  const [user, setUser] = useState({ username: '', email: '' });
+  const [passwordData, setPasswordData] = useState({
+    old_password: '',
+    new_password: '',
+  });
+  const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
+
+  const token = localStorage.getItem('token'); // Retrieve token from localStorage
+
+  // Axios configuration with authorization
+  const axiosInstance = axios.create({
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  useEffect(() => {
+    // Fetch user data
+    axiosInstance
+      .get('http://127.0.0.1:8000/api/profile/')
+      .then((response) => {
+        setUser(response.data);
+      })
+      .catch((error) => console.error('Error fetching user data:', error));
+  }, [axiosInstance]);
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  };
+
+  const handleChangePassword = (e) => {
+    e.preventDefault();
+    axiosInstance
+      .post('http://127.0.0.1:8000/api/change-password/', passwordData)
+      .then(() => {
+        alert('Password changed successfully!');
+        setPasswordData({ old_password: '', new_password: '' });
+        setOpenPasswordDialog(false);
+      })
+      .catch((error) => {
+        console.error('Error changing password:', error);
+        alert('Failed to change password. Please try again.');
+      });
+  };
+
+  const handleOpenPasswordDialog = () => {
+    setOpenPasswordDialog(true);
+  };
+
+  const handleClosePasswordDialog = () => {
+    setOpenPasswordDialog(false);
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/profile">
+            Profile
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      {/* Profile Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Profile
+        </Typography>
+        <Paper elevation={3} sx={{ borderRadius: 2, p: 3 }}>
+          <Grid container spacing={2}>
+            {/* Username Display */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6">Username:</Typography>
+              <Typography variant="body1" color="textSecondary">
+                {user.username}
+              </Typography>
+            </Grid>
+
+            {/* Email Display */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6">Email:</Typography>
+              <Typography variant="body1" color="textSecondary">
+                {user.email}
+              </Typography>
+            </Grid>
+          </Grid>
+          <Divider sx={{ my: 3 }} />
+          <Box sx={{ textAlign: 'center' }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleOpenPasswordDialog}
+            >
+              Change Password
+            </Button>
+          </Box>
+        </Paper>
+      </Box>
+
+      {/* Change Password Dialog */}
+      <Dialog open={openPasswordDialog} onClose={handleClosePasswordDialog}>
+        <DialogTitle>Change Password</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Enter your current password and the new password to update your
+            account.
+          </DialogContentText>
+          <TextField
+            margin="dense"
+            label="Old Password"
+            name="old_password"
+            type="password"
+            value={passwordData.old_password}
+            onChange={handlePasswordChange}
+            fullWidth
+          />
+          <TextField
+            margin="dense"
+            label="New Password"
+            name="new_password"
+            type="password"
+            value={passwordData.new_password}
+            onChange={handlePasswordChange}
+            fullWidth
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePasswordDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleChangePassword} color="secondary">
+            Change Password
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+export default Profile;
