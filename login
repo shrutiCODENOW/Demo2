@@ -180,3 +180,22 @@ const Login = () => {
 
 export default Login;
 
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/inventory-log" element={<InventoryLog />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/graphs" element={<Graphs />} />
+        <Route path="/profile" element={<Profile />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
+
