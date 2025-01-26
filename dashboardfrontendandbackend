@@ -1,0 +1,181 @@
+import React from 'react';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  Grid,
+  Paper,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+
+function Dashboard() {
+  const [anchorEl, setAnchorEl] = React.useState(null);
+
+  const handleProfileMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/inventory-log">
+            Inventory Log
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={Link} to="/graphs">
+            Graphs
+          </Button>
+          <Button color="inherit" onClick={handleProfileMenuClick}>
+            Profile
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem component={Link} to="/profile">
+              View Profile
+            </MenuItem>
+            <MenuItem component={Link} to="/login">
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Dashboard Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Dashboard
+        </Typography>
+
+        <Grid container spacing={3}>
+          {/* Summary Charts */}
+          <Grid item xs={12} md={6}>
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Summary Charts
+              </Typography>
+              {/* Placeholder for charts */}
+              <Box sx={{ bgcolor: '#f5f5f5', height: '200px', borderRadius: 1 }} />
+            </Paper>
+          </Grid>
+
+          {/* Pending Orders */}
+          <Grid item xs={12} md={6}>
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Pending Orders
+              </Typography>
+              {/* Placeholder for pending orders */}
+              <Box sx={{ bgcolor: '#f5f5f5', height: '200px', borderRadius: 1 }} />
+            </Paper>
+          </Grid>
+
+          {/* Low Stock Products */}
+          <Grid item xs={12} md={6}>
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Low Stock Products
+              </Typography>
+              {/* Placeholder for low stock products */}
+              <Box sx={{ bgcolor: '#f5f5f5', height: '200px', borderRadius: 1 }} />
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
+  );
+}
+
+export default Dashboard;
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def inventory_dashboard(request):
+    """
+    Fetches the inventory dashboard data, including total stock value.
+    """
+    # Total number of products
+    total_products = Product.objects.count()
+
+    # Total stock quantity across all products
+    total_stock_quantity = Product.objects.aggregate(Sum('stock_quantity'))['stock_quantity__sum'] or 0
+
+    # Total number of inventory log entries
+    total_inventory_logs = InventoryLog.objects.count()
+
+    # Total profit from all orders (assuming total_price reflects total profit)
+    total_profit = Order.objects.aggregate(Sum('total_price'))['total_price__sum'] or 0
+
+    # Total number of orders placed
+    total_orders = Order.objects.count()
+
+    # Calculate total stock value (stock_quantity * price for each product)
+    total_stock_value = Product.objects.aggregate(
+        total_value=Sum(F('stock_quantity') * F('price'))
+    )['total_value'] or 0
+
+    # Prepare the dashboard data
+    dashboard_data = {
+        "total_products": total_products,
+        "total_stock_quantity": total_stock_quantity,
+        "total_inventory_logs": total_inventory_logs,
+        "total_profit": total_profit,
+        "total_orders": total_orders,
+        "total_stock_value": total_stock_value,
+    }
+
+    return Response(dashboard_data, status=status.HTTP_200_OK)
+ path('api/inventory/dashboard',inventory_dashboard, name='inventory_dashboard'),
