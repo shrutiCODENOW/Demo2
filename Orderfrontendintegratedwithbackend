@@ -1,0 +1,205 @@
+import React, { useState, useEffect } from "react";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Select,
+  MenuItem as MuiMenuItem,
+} from "@mui/material";
+import { Link } from "react-router-dom";
+import axios from "axios";
+
+function Orders() {
+  const [view, setView] = useState("newOrder");
+  const [products, setProducts] = useState([]);
+  const [previousOrders, setPreviousOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null); // To store order details for the dialog
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const token = localStorage.getItem("accessToken");
+
+  useEffect(() => {
+    // Fetch products and orders
+    axios
+      .get("http://localhost:8098/api/products/", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setProducts(res.data));
+
+    axios
+      .get("http://localhost:8098/api/orders/", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setPreviousOrders(res.data));
+  }, [token]);
+
+  const handleViewOrder = (id) => {
+    // Fetch order by ID
+    axios
+      .get(`http://localhost:8098/api/orders/${id}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setSelectedOrder(res.data))
+      .catch((err) => console.error("Error fetching order:", err));
+  };
+
+  const handleCloseDialog = () => {
+    setSelectedOrder(null);
+  };
+
+  const handleStatusChange = (id, status) => {
+    // Update order status
+    axios
+      .patch(
+        `http://localhost:8098/api/orders/${id}/`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(() => {
+        const updatedOrders = previousOrders.map((o) =>
+          o.id === id ? { ...o, status } : o
+        );
+        setPreviousOrders(updatedOrders);
+        if (selectedOrder) {
+          setSelectedOrder({ ...selectedOrder, status });
+        }
+      })
+      .catch((err) => console.error("Error updating status:", err));
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: "#1976d2" }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      {/* Orders Table */}
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
+          Orders
+        </Typography>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Order ID</TableCell>
+                <TableCell>Customer Name</TableCell>
+                <TableCell>Product Name</TableCell>
+                <TableCell>Total Price</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {previousOrders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell>{order.id}</TableCell>
+                  <TableCell>{order.customerName}</TableCell>
+                  <TableCell>
+                    {order.items
+                      .map((item) => {
+                        const product = products.find((p) => p.id === item.productId);
+                        return product ? product.name : "Unknown Product";
+                      })
+                      .join(", ")}
+                  </TableCell>
+                  <TableCell>${order.totalPrice}</TableCell>
+                  <TableCell>{order.status}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => handleViewOrder(order.id)}
+                    >
+                      View
+                    </Button>
+                    <Select
+                      value={order.status}
+                      onChange={(e) =>
+                        handleStatusChange(order.id, e.target.value)
+                      }
+                      sx={{ ml: 2 }}
+                    >
+                      <MuiMenuItem value="Order Pending">Order Pending</MuiMenuItem>
+                      <MuiMenuItem value="Delivered">Delivered</MuiMenuItem>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+
+      {/* Order Details Dialog */}
+      {selectedOrder && (
+        <Dialog open={Boolean(selectedOrder)} onClose={handleCloseDialog}>
+          <DialogTitle>Order Details</DialogTitle>
+          <DialogContent>
+            <Typography>
+              <strong>Order ID:</strong> {selectedOrder.id}
+            </Typography>
+            <Typography>
+              <strong>Customer Name:</strong> {selectedOrder.customerName}
+            </Typography>
+            <Typography>
+              <strong>Customer Phone:</strong> {selectedOrder.customerPhoneNumber}
+            </Typography>
+            <Typography>
+              <strong>Products:</strong>{" "}
+              {selectedOrder.items
+                .map((item) => {
+                  const product = products.find((p) => p.id === item.productId);
+                  return product
+                    ? `${product.name} (${item.quantity})`
+                    : "Unknown Product";
+                })
+                .join(", ")}
+            </Typography>
+            <Typography>
+              <strong>Total Price:</strong> ${selectedOrder.totalPrice}
+            </Typography>
+            <Typography>
+              <strong>Status:</strong> {selectedOrder.status}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </Box>
+  );
+}
+
+export default Orders;
