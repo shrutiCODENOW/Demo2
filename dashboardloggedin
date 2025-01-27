@@ -35,3 +35,54 @@ def inventory_dashboard(request):
     }
 
     return Response(dashboard_data, status=status.HTTP_200_OK)
+
+from django.db.models import Sum, F
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def inventory_dashboard(request):
+    """
+    Fetches the inventory dashboard data for the logged-in user.
+    """
+    user = request.user  # Logged-in user
+
+    # Filter products, orders, and inventory logs for the logged-in user
+    user_products = Product.objects.filter(user=user)
+    user_orders = Order.objects.filter(user=user)
+    user_inventory_logs = InventoryLog.objects.filter(user=user)
+
+    # Total number of products
+    total_products = user_products.count()
+
+    # Total stock quantity across all products for this user
+    total_stock_quantity = user_products.aggregate(Sum('stock_quantity'))['stock_quantity__sum'] or 0
+
+    # Total number of inventory log entries for this user
+    total_inventory_logs = user_inventory_logs.count()
+
+    # Total profit from all orders (assuming total_price reflects total profit) for this user
+    total_profit = user_orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+
+    # Total number of orders placed by this user
+    total_orders = user_orders.count()
+
+    # Calculate total stock value (stock_quantity * price for each product) for this user
+    total_stock_value = user_products.aggregate(
+        total_value=Sum(F('stock_quantity') * F('price'))
+    )['total_value'] or 0
+
+    # Prepare the dashboard data
+    dashboard_data = {
+        "total_products": total_products,
+        "total_stock_quantity": total_stock_quantity,
+        "total_inventory_logs": total_inventory_logs,
+        "total_profit": total_profit,
+        "total_orders": total_orders,
+        "total_stock_value": total_stock_value,
+    }
+
+    return Response(dashboard_data, status=status.HTTP_200_OK)
