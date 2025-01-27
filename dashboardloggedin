@@ -1,0 +1,37 @@
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def inventory_dashboard(request):
+    """
+    Fetches the inventory dashboard data, including total stock value.
+    """
+    # Total number of products
+    total_products = Product.objects.count()
+
+    # Total stock quantity across all products
+    total_stock_quantity = Product.objects.aggregate(Sum('stock_quantity'))['stock_quantity__sum'] or 0
+
+    # Total number of inventory log entries
+    total_inventory_logs = InventoryLog.objects.count()
+
+    # Total profit from all orders (assuming total_price reflects total profit)
+    total_profit = Order.objects.aggregate(Sum('total_price'))['total_price__sum'] or 0
+
+    # Total number of orders placed
+    total_orders = Order.objects.count()
+
+    # Calculate total stock value (stock_quantity * price for each product)
+    total_stock_value = Product.objects.aggregate(
+        total_value=Sum(F('stock_quantity') * F('price'))
+    )['total_value'] or 0
+
+    # Prepare the dashboard data
+    dashboard_data = {
+        "total_products": total_products,
+        "total_stock_quantity": total_stock_quantity,
+        "total_inventory_logs": total_inventory_logs,
+        "total_profit": total_profit,
+        "total_orders": total_orders,
+        "total_stock_value": total_stock_value,
+    }
+
+    return Response(dashboard_data, status=status.HTTP_200_OK)
