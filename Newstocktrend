@@ -1,0 +1,26 @@
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Product
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stock_trends(request):
+    # Group by date (assuming there is a `updated_at` field in Product)
+    stock_trend = (
+        Product.objects
+        .annotate(date=TruncDate('updated_at'))  # Truncate to just date
+        .values('date')
+        .annotate(total_stock=Sum('stock_quantity'))
+        .order_by('date')
+    )
+
+    # Format response data
+    data = [
+        {"date": entry["date"].strftime("%Y-%m-%d"), "stock_quantity": entry["total_stock"]}
+        for entry in stock_trend if entry["date"] is not None
+    ]
+
+    return Response(data)
