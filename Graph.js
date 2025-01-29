@@ -332,5 +332,65 @@ const getColor = (index) => {
 };
 
 export default Graphs;
+
+
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+import Navbar from './Navbar';
+
+function Graphs() {
+  const [logs, setLogs] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  useEffect(() => {
+    axios
+      .get('http://127.0.0.1:8198/inventory-log/')
+      .then((response) => setLogs(response.data))
+      .catch((error) => console.error(error));
+  }, []);
+
+  const handleProfileMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+<Navbar />
+
+      {/* Graphs Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Graphs
+        </Typography>
+
+        
+      </Box>
+    </Box>
+  );
+}
+
+export default Graphs;
+
           
   
