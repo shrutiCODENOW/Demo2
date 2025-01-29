@@ -1,0 +1,23 @@
+from django.db.models import Sum
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .models import Product
+
+@api_view(['GET'])
+def get_category_stock_data(request):
+    try:
+        # Aggregate stock quantity per category
+        category_stock_data = Product.objects.values('category__name').annotate(total_stock=Sum('stock_quantity'))
+        
+        # Prepare the response
+        categories = [data['category__name'] for data in category_stock_data]
+        stock_quantities = [data['total_stock'] for data in category_stock_data]
+        
+        data = {
+            "categories": categories,
+            "stock_quantities": stock_quantities
+        }
+        
+        return Response(data)
+    except Exception as e:
+        return Response({"error": "Failed to fetch category stock data."}, status=500)
