@@ -219,3 +219,33 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+ <Grid container spacing={3}>
+          {/* Low Stock Products */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Low Stock Products
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {lowStockProducts.length}
+              </Typography>
+              <IconButton onClick={() => setLowStockDialogOpen(true)}>
+                <VisibilityIcon />
+              </IconButton>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Out of Stock Products
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {outOfStockProducts.length}
+              </Typography>
+              <IconButton onClick={() => setOutOfStockDialogOpen(true)}>
+                <VisibilityIcon />
+              </IconButton>
+            </Paper>
+          </Grid>
