@@ -286,3 +286,33 @@ function Products() {
 }
 
 export default Products;
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_product(request):
+    """
+    Add a new product. If the category does not exist, it will be created.
+    """
+    category_name = request.data.get('category_name')
+    if not category_name:
+        return Response({"error": "Category name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if category exists; if not, create it
+    category, created = Category.objects.get_or_create(name=category_name)
+
+    product_data = {
+        'name': request.data.get('name'),
+        'category': category.id,
+        'description': request.data.get('description'),
+        'price': request.data.get('price'),
+        'stock_quantity': request.data.get('stock_quantity'),
+        'created_by':request.user.id,
+        'threshold':request.data.get('threshold')
+    }
+
+    serializer = ProductSerializer(data=product_data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
