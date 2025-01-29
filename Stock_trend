@@ -1,0 +1,24 @@
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import InventoryLog
+from django.db.models import Sum
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stock_trends(request):
+    # Fetch stock trends from the database, grouped by date
+    stock_trend = (
+        InventoryLog.objects
+        .values('date')
+        .annotate(total_stock=Sum('stock_quantity'))
+        .order_by('date')
+    )
+
+    # Format the response data
+    data = [
+        {"date": entry["date"].strftime("%Y-%m-%d"), "stock_quantity": entry["total_stock"]}
+        for entry in stock_trend
+    ]
+
+    return Response(data)
