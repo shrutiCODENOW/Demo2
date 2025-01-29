@@ -164,6 +164,46 @@ function Graphs() {
     </Box>
   );
 }
+<Card sx={{ boxShadow: 3, borderRadius: 2, mb: 3 }}>
+          <CardHeader title="Category vs Stock Quantity (Pie Chart)" />
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  nameKey="name" // Ensure nameKey is set to 'name', which contains category_name
+                  outerRadius={120}
+                  fill="#8884d8"
+                  label
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getColor(index)} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Box>
+    </Box>
+  );
+}
+
+// Function to generate a color for each slice of the pie chart
+const getColor = (index) => {
+  const colors = ['#FF8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+  return colors[index % colors.length];
+};
+
+export default Graphs;
+Key Changes:
+Card Component:
+
+Wrapped the Pie chart inside a Card component from Material-UI. This gives the pie chart a card-like appearance with shadow and padding.
+CardHeader and Ca
 
 // Function to generate a color for each slice of the pie chart
 const getColor = (index) => {
