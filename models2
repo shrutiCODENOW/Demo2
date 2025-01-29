@@ -186,7 +186,7 @@ function Dashboard() {
                 {dashboardData.total_orders}
               </Typography>
             </Paper>
-          </Grid>
+          </Grid>uu
 
           {/* Total Stock Value */}
           <Grid item xs={12} sm={6} md={4}>
@@ -200,6 +200,167 @@ function Dashboard() {
             </Paper>
           </Grid>
         </Grid>
+      </Box>
+    </Box>
+  );
+}
+
+export default Dashboard;
+
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  CircularProgress,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import axios from 'axios';
+import Navbar from './Navbar';
+
+function Dashboard() {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [outOfStockProducts, setOutOfStockProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lowStockDialogOpen, setLowStockDialogOpen] = useState(false);
+  const [outOfStockDialogOpen, setOutOfStockDialogOpen] = useState(false);
+
+  // Fetch dashboard and alert data separately
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        
+        // Fetch dashboard data
+        const dashboardResponse = await axios.get('http://127.0.0.1:8198/api/inventory/dashboard', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Fetch alert data
+        const alertResponse = await axios.get('http://127.0.0.1:8198/api/inventory/alerts', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setDashboardData(dashboardResponse.data);
+        setLowStockProducts(alertResponse.data.low_stock_products);
+        setOutOfStockProducts(alertResponse.data.out_of_stock_products);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Typography variant="h6" color="error">
+          Failed to load dashboard data.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <Navbar />
+
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Dashboard
+        </Typography>
+
+        <Grid container spacing={3}>
+          {/* Low Stock Products */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Low Stock Products
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {lowStockProducts.length}
+              </Typography>
+              <IconButton onClick={() => setLowStockDialogOpen(true)}>
+                <VisibilityIcon />
+              </IconButton>
+            </Paper>
+          </Grid>
+
+          {/* Out of Stock Products */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Out of Stock Products
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {outOfStockProducts.length}
+              </Typography>
+              <IconButton onClick={() => setOutOfStockDialogOpen(true)}>
+                <VisibilityIcon />
+              </IconButton>
+            </Paper>
+          </Grid>
+
+          {/* Example existing dashboard card */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Total Products
+              </Typography>
+              <Typography variant="h4" sx={{ mt: 2 }}>
+                {dashboardData.total_products}
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        {/* Dialog for Low Stock Products */}
+        <Dialog open={lowStockDialogOpen} onClose={() => setLowStockDialogOpen(false)}>
+          <DialogTitle>Low Stock Products</DialogTitle>
+          <DialogContent>
+            <List>
+              {lowStockProducts.map((product) => (
+                <ListItem key={product.id}>
+                  <ListItemText primary={product.name} />
+                </ListItem>
+              ))}
+            </List>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog for Out of Stock Products */}
+        <Dialog open={outOfStockDialogOpen} onClose={() => setOutOfStockDialogOpen(false)}>
+          <DialogTitle>Out of Stock Products</DialogTitle>
+          <DialogContent>
+            <List>
+              {outOfStockProducts.map((product) => (
+                <ListItem key={product.id}>
+                  <ListItemText primary={product.name} />
+                </ListItem>
+              ))}
+            </List>
+          </DialogContent>
+        </Dialog>
       </Box>
     </Box>
   );
