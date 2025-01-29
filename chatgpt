@@ -282,3 +282,171 @@ function Products() {
 }
 
 export default Products;
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  TextField,
+  Box,
+  Grid,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+
+function Products() {
+  const [products, setProducts] = useState([]);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    category: '',
+    description: '',
+    price: '',
+    inventory_count: '',
+    threshold: '',
+    picture: null,
+  });
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const token = localStorage.getItem('token'); // Retrieve token from storage
+
+  useEffect(() => {
+    axios
+      .get('/api/products/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((response) => setProducts(response.data))
+      .catch((error) => console.error('Error fetching products:', error));
+  }, [token]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewProduct({ ...newProduct, [name]: value });
+  };
+
+  const handleFileChange = (e) => {
+    setNewProduct({ ...newProduct, picture: e.target.files[0] });
+  };
+
+  const handleAddProduct = (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    Object.keys(newProduct).forEach((key) => {
+      formData.append(key, newProduct[key]);
+    });
+
+    axios
+      .post('/api/products/', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then(() => {
+        alert('Product added successfully!');
+        setNewProduct({
+          name: '',
+          category: '',
+          description: '',
+          price: '',
+          inventory_count: '',
+          threshold: '',
+          picture: null,
+        });
+      })
+      .catch((error) => console.error('Error adding product:', error));
+  };
+
+  const handleProfileMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/inventory-log">
+            Inventory Log
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={Link} to="/graphs">
+            Graphs
+          </Button>
+          <Button color="inherit" onClick={handleProfileMenuClick}>
+            Profile
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem component={Link} to="/profile">
+              View Profile
+            </MenuItem>
+            <MenuItem component={Link} to="/login">
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Products Page Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Products
+        </Typography>
+
+        {/* Add New Product Form */}
+        <Paper elevation={3} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+            Add New Product
+          </Typography>
+          <form onSubmit={handleAddProduct}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Product Name"
+                  name="name"
+                  value={newProduct.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Category"
+                  name="category"
+                  value={newProduct.category}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Grid
