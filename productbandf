@@ -1,0 +1,401 @@
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  TextField,
+  Box,
+  Grid,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+
+function Products() {
+  const [products, setProducts] = useState([]);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    category: '',
+    description: '',
+    price: '',
+    // inventory_count: '',
+    threshold: '',
+    picture: null,
+  });
+  const [view, setView] = useState('addProduct'); // state to toggle between "Add New Product" and "Existing Products"
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  useEffect(() => {
+    axios
+      .get('/api/products/')
+      .then((response) => setProducts(response.data))
+      .catch((error) => console.error('Error fetching products:', error));
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewProduct({ ...newProduct, [name]: value });
+  };
+
+  const handleFileChange = (e) => {
+    setNewProduct({ ...newProduct, picture: e.target.files[0] });
+  };
+
+  const handleAddProduct = (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    Object.keys(newProduct).forEach((key) => {
+      formData.append(key, newProduct[key]);
+    });
+    axios
+      .post('/api/products/', formData)
+      .then(() => {
+        alert('Product added successfully!');
+        setNewProduct({
+          name: '',
+          category: '',
+          description: '',
+          price: '',
+          inventory_count: '',
+          threshold: '',
+          picture: null,
+        });
+      })
+      .catch((error) => console.error('Error adding product:', error));
+  };
+
+  const handleProfileMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Navbar */}
+      <AppBar position="static" sx={{ backgroundColor: '#1976d2' }}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Inventory Management
+          </Typography>
+          <Button color="inherit" component={Link} to="/dashboard">
+            Dashboard
+          </Button>
+          <Button color="inherit" component={Link} to="/products">
+            Products
+          </Button>
+          <Button color="inherit" component={Link} to="/inventory-log">
+            Inventory Log
+          </Button>
+          <Button color="inherit" component={Link} to="/orders">
+            Orders
+          </Button>
+          <Button color="inherit" component={Link} to="/graphs">
+            Graphs
+          </Button>
+          <Button color="inherit" onClick={handleProfileMenuClick}>
+            Profile
+          </Button>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem component={Link} to="/profile">
+              View Profile
+            </MenuItem>
+            <MenuItem component={Link} to="/login">
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      {/* Products Page Content */}
+      <Box sx={{ p: 3, mt: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+          Products
+        </Typography>
+
+        {/* Buttons to toggle between "Add New Product" and "Existing Products" */}
+        <Box className="flex gap-4 mb-4">
+          <Button
+            variant="contained"
+            color={view === 'addProduct' ? 'primary' : 'default'}
+            onClick={() => setView('addProduct')}
+          >
+            Add New Product
+          </Button>
+          <Button
+            variant="contained"
+            color={view === 'existingProducts' ? 'primary' : 'default'}
+            onClick={() => setView('existingProducts')}
+          >
+            Existing Products
+          </Button>
+        </Box>
+
+        {/* Add New Product Form */}
+        {view === 'addProduct' && (
+          <Paper elevation={3} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Add New Product
+            </Typography>
+            <form onSubmit={handleAddProduct}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Product Name"
+                    name="name"
+                    value={newProduct.name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Category"
+                    name="category"
+                    value={newProduct.category}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Description"
+                    name="description"
+                    value={newProduct.description}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Price"
+                    name="price"
+                    value={newProduct.price}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Inventory Count"
+                    name="inventory_count"
+                    value={newProduct.inventory_count}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Threshold"
+                    name="threshold"
+                    value={newProduct.threshold}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button variant="contained" component="label">
+                    Upload Picture
+                    <input
+                      type="file"
+                      name="picture"
+                      onChange={handleFileChange}
+                      hidden
+                    />
+                  </Button>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    variant="contained"
+                    type="submit"
+                    sx={{ mt: 2, backgroundColor: '#1976d2' }}
+                  >
+                    Add Product
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+          </Paper>
+        )}
+
+        {/* Existing Products Table */}
+        {view === 'existingProducts' && (
+          <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Existing Products
+            </Typography>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Id</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Category</TableCell>
+                    {/* <TableCell>Description</TableCell> */}
+                    <TableCell>Price</TableCell>
+                    <TableCell>Stock quantity</TableCell>
+                    <TableCell>View</TableCell>
+                    <TableCell>Add to inventory</TableCell>
+                    <TableCell>Edit Product</TableCell>
+                    <TableCell>Delete Product</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>{product.id}</TableCell>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell>{product.category}</TableCell>
+                      {/* <TableCell>
+                        <Button>👁️</Button>
+                      </TableCell> */}
+                      <TableCell>{product.price}</TableCell>
+                      <TableCell>{product.stock_quantity}</TableCell>
+                      <TableCell>
+                        <Button>👁️</Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button>➕</Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button>✏️</Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button>🗑️</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+export default Products;
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_products(request):
+    """
+    Get the list of products created by the logged-in user.
+    """
+    # Get products created by the authenticated user (filter by created_by)
+    products = Product.objects.filter(created_by=request.user)
+
+    # Serialize the products data
+    serializer = ProductSerializer(products, many=True)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+    this is my frontend and backend code in existing product toggle use this api to get product list category id,product name
+    stock_quntity and price and has view update and delete button which has api as follows
+    @api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_product_by_id(request, pk):
+    """
+    Retrieve a product entry by ID.
+    """
+    try:
+        # Fetch the product by ID
+        product = Product.objects.get(pk=pk)
+    except Product.DoesNotExist:
+        return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Serialize the product data
+    serializer = ProductSerializer(product)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+    @api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_product(request, product_id):
+    """
+    Partially update an existing product. If the category does not exist, it will be created.
+    """
+    try:
+        product = Product.objects.get(id=product_id,created_by=request.user)
+    except Product.DoesNotExist:
+        return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    category_name = request.data.get('category_name')
+    if category_name:
+        category, created = Category.objects.get_or_create(name=category_name)
+        request.data['category'] = category.id
+
+    serializer = ProductSerializer(product, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_product(request, product_id):
+    """
+    Delete a product by its ID.
+    """
+    try:
+        product = Product.objects.get(id=product_id,created_by=request.user)
+    except Product.DoesNotExist:
+        return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    product.delete()
+    return Response({"message": "Product deleted successfully."}, status=status.HTTP_200_OK)
+    and add to inventory button which uses
+    @api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def auto_create_inventory_by_product_id(request, product_id):
+    """
+    Automatically create an inventory log entry by product ID.
+    The quantity is taken from the product's stock, and the action is 'add'.
+    """
+   
+    try:
+        # Fetch the product by ID
+        product = Product.objects.get(id=product_id)
+
+        # Automatically create an inventory log
+        inventory_log = InventoryLog.objects.create(
+            product=product,
+            quantity=product.stock_quantity,  # Use the product's current stock
+            action='add',  # Action is 'add'
+            user=request.user  # Assume the user is authenticated
+        )
+
+        # Serialize the created inventory log
+        serializer = InventoryLogSerializer(inventory_log)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+        api integrate frontend and backend code using api and in same code format for frontend
