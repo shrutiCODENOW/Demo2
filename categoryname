@@ -145,5 +145,16 @@ const getColor = (index) => {
 
 export default Graphs;
 
+response.data.forEach((product) => {
+          // Filter by category name if it's provided
+          if (product.stock_quantity > 0 && (!categoryName || product.category_name === categoryName)) {
+            if (categoryStock[product.category_name]) {
+              categoryStock[product.category_name] += product.stock_quantity;
+            } else {
+              categoryStock[product.category_name] = product.stock_quantity;
+            }
+          }
+        });
+
           
   
