@@ -1,0 +1,115 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { TextField, Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+
+const Login = () => {
+  const [credentials, setCredentials] = useState({
+    username: '',
+    password: '',
+  });
+  const [error, setError] = useState(null); // State to store error messages
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null); // Reset error state
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8198/api/token/', credentials); // JWT login endpoint
+      const { access, refresh } = response.data;
+
+      // Store tokens in localStorage (or sessionStorage)
+      localStorage.setItem('accessToken', access);
+      localStorage.setItem('refreshToken', refresh);
+
+      // alert('Logged in successfully!');
+      navigate('/dashboard'); // Redirect to the dashboard
+    } catch (err) {
+      setError('Invalid username or password. Please try again.');
+    }
+  };
+
+  return (
+    <Grid
+      container
+      component="main"
+      sx={{ height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}
+    >
+      <Paper
+        elevation={6}
+        sx={{
+          padding: 4,
+          maxWidth: 400,
+          width: '90%',
+          textAlign: 'center',
+          borderRadius: 2,
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Login
+        </Typography>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <TextField
+            fullWidth
+            label="Username"
+            name="username"
+            variant="outlined"
+            margin="normal"
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            fullWidth
+            label="Password"
+            name="password"
+            type="password"
+            variant="outlined"
+            margin="normal"
+            onChange={handleChange}
+            required
+          />
+          {/* <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Button type="submit" variant="contained" color="primary">
+              Login
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => navigate('/register')}
+            >
+              Go to Register Page
+            </Button>
+          </Box> */}
+          {error && (
+                <Typography color="error" sx={{ mt: 2 }}>
+                {error}
+                </Typography>
+            )}
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3 }}>
+                Login
+            </Button>
+            <Button
+                onClick={() => navigate('/register')}
+                variant="text"
+                fullWidth
+                sx={{ mt: 2, color: '#1976d2' }}
+            >
+                Don't have an account? Register.
+            </Button>
+        </Box>
+      </Paper>
+    </Grid>
+  );
+};
+
+export default Login;
