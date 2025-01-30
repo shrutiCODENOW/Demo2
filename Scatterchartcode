@@ -1,0 +1,258 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Menu,
+  MenuItem,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  CircularProgress,
+  Card,
+  CardHeader,
+  CardContent,
+  Grid,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  AreaChart,
+  Area,
+  ScatterChart,
+  Scatter
+} from '@mui/material';
+import { Link } from 'react-router-dom';
+import Navbar from './Navbar';
+
+function Graphs() {
+  const [logs, setLogs] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [categoryName, setCategoryName] = useState('');
+  const [barData, setBarData] = useState(true);
+  const [data, setData] = useState([]);
+  const [stockTrendData, setStockTrendData] = useState([]);
+  const [orderData, setOrderData] = useState([]);
+  const [scatterData, setScatterData] = useState([]);
+
+  useEffect(() => {
+    // Fetching logs data
+    axios
+      .get('http://127.0.0.1:8198/inventory-log/')
+      .then((response) => setLogs(response.data))
+      .catch((error) => console.error(error));
+
+    // Fetching product data for the chart
+    const fetchProductData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('http://127.0.0.1:8198/api/get/user_product/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const categoryStock = {};
+        const productPriceData = [];
+
+        response.data.forEach((product) => {
+          if (product.stock_quantity > 0 && (!categoryName || product.category_name === categoryName)) {
+            if (categoryStock[product.category_name]) {
+              categoryStock[product.category_name] += product.stock_quantity;
+            } else {
+              categoryStock[product.category_name] = product.stock_quantity;
+            }
+          }
+          productPriceData.push({ name: product.name, price: product.price });
+        });
+
+        const chartData = Object.keys(categoryStock).map((category) => ({
+          name: category,
+          value: categoryStock[category],
+        }));
+
+        setChartData(chartData);
+        setBarData(productPriceData);
+      } catch (error) {
+        console.error('Failed to fetch product data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchStockTrendData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('http://127.0.0.1:8198/api/get/trends', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setStockTrendData(response.data);
+      } catch (error) {
+        console.error('Error fetching stock trend data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchOrderTrend = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('http://127.0.0.1:8198/api/get/order_trends', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setOrderData(response.data);
+      } catch (error) {
+        console.error('Error fetching order trend data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Fetch scatter data (Quantity vs Price)
+    const fetchScatterData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('http://127.0.0.1:8198/api/products/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const scatterData = response.data.map((product) => ({
+          quantity: product.quantity,
+          price: product.price,
+        }));
+        setScatterData(scatterData);
+      } catch (error) {
+        console.error('Error fetching scatter data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductData();
+    fetchStockTrendData();
+    fetchOrderTrend();
+    fetchScatterData();
+  }, [categoryName]);
+
+  // Function to generate a color for each slice of the pie chart
+  const getColor = (index) => {
+    const colors = ['#FF8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+    return colors[index % colors.length];
+  };
+
+  // Display loading spinner while data is being fetched
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // If no chart data is available
+  if (!chartData.length) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Typography variant="h6" color="error">
+          Failed to load chart data.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <Navbar />
+      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3, pt: 3 }}>
+        <center>
+          <span style={{ color: '#BF40BF' }}>Gra</span>phs
+        </center>
+      </Typography>
+
+      {/* Graphs Content */}
+      <Box sx={{ p: 3, mt: 2, display: 'flex', gap: 10, justifyContent: 'center' }}>
+
+        {/* Category vs Stock Quantity Pie Chart */}
+        <Card sx={{ boxShadow: 10, borderRadius: 3, mb: 3, width: '40%' }}>
+          <center>
+            <CardHeader title="Category vs Stock Quantity (Pie Chart)" />
+          </center>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={120} fill="#8884d8" label>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getColor(index)} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Product vs Price Bar Chart */}
+        <Card sx={{ boxShadow: 10, borderRadius: 3, width: '40%' }}>
+          <center>
+            <CardHeader title="Product vs Price (Bar Chart)" />
+          </center>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="price" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+      </Box>
+
+      {/* Scatter Plot (Product Quantity vs Price) */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', height: '100vh', pt: 0, gap: 10 }}>
+        <Card sx={{ boxShadow: 10, borderRadius: 3, width: '40%', height: 400 }}>
+          <center>
+            <strong>
+              <CardHeader title="Product Quantity vs Price (Scatter Plot)" />
+            </strong>
+          </center>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <ScatterChart>
+                <CartesianGrid />
+                <XAxis type="number" dataKey="quantity" name="Quantity" />
+                <YAxis type="number" dataKey="price" name="Price" />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                <Scatter name="Products" data={scatterData} fill="#FF5722" />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Other graphs (Area Chart for Stock and Order Trends) can go here */}
+    </Box>
+  );
+}
+
+export default Graphs;
