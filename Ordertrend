@@ -1,0 +1,26 @@
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from .models import Order
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_order_trends(request):
+    # Group orders by date
+    order_trend = (
+        Order.objects
+        .annotate(date=TruncDate('created_at'))  # Truncate to just date
+        .values('date')
+        .annotate(order_count=Count('id'))  # Count orders per day
+        .order_by('date')
+    )
+
+    # Format the response data
+    data = [
+        {"date": entry["date"].strftime("%Y-%m-%d"), "order_count": entry["order_count"]}
+        for entry in order_trend if entry["date"] is not None
+    ]
+
+    return Response(data)
