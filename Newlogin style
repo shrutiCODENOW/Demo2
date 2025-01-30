@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { TextField, Button, Box, Typography, Grid, Paper, Alert } from '@mui/material';
+
+const Login = () => {
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8198/api/token/', credentials);
+      const { access, refresh } = response.data;
+
+      localStorage.setItem('accessToken', access);
+      localStorage.setItem('refreshToken', refresh);
+
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Invalid username or password. Please try again.');
+    }
+  };
+
+  return (
+    <Grid container component="main" sx={{ height: '80vh', justifyContent: 'center', alignItems: 'center' }}>
+      <Grid item xs={12} md={8} lg={6} component={Paper} elevation={6} square>
+        <Grid container>
+          {/* Left Section: Logo and Welcome Message */}
+          <Grid
+            item
+            xs={12}
+            sm={5}
+            sx={{
+              backgroundColor: '#1976d2',
+              color: '#fff',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 3,
+            }}
+          >
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              Inventory Management
+            </Typography>
+            <Typography variant="subtitle1" sx={{ mt: 2 }}>
+              Welcome! Please sign in to continue your journey with us.
+            </Typography>
+          </Grid>
+
+          {/* Right Section: Login Form */}
+          <Grid item xs={12} sm={7}>
+            <Box sx={{ p: 4 }}>
+              <Typography variant="h5" gutterBottom align="center">
+                Login
+              </Typography>
+
+              {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
+
+              <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Username"
+                  name="username"
+                  variant="outlined"
+                  margin="normal"
+                  onChange={handleChange}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label="Password"
+                  name="password"
+                  type="password"
+                  variant="outlined"
+                  margin="normal"
+                  onChange={handleChange}
+                  required
+                />
+                <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3 }}>
+                  Login
+                </Button>
+                <Button
+                  onClick={() => navigate('/register')}
+                  variant="text"
+                  fullWidth
+                  sx={{ mt: 2, color: '#1976d2' }}
+                >
+                  Don't have an account? Register.
+                </Button>
+              </Box>
+            </Box>
+          </Grid>
+        </Grid>
+      </Grid>
+    </Grid>
+  );
+};
+
+export default Login;
