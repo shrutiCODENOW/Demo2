@@ -231,3 +231,154 @@ const fetchDashboardData = async () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import {
+  Box,
+  CircularProgress,
+  Card,
+  CardHeader,
+  CardContent,
+  Typography
+} from '@mui/material';
+import Navbar from './Navbar';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
+
+function Graphs() {
+  const [chartData, setChartData] = useState([]);
+  const [barData, setBarData] = useState([]);
+  const [stockTrendData, setStockTrendData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProductData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('http://127.0.0.1:8198/api/get/user_product/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const categoryStock = {};
+        const productPriceData = [];
+
+        response.data.forEach((product) => {
+          if (product.stock_quantity > 0) {
+            categoryStock[product.category_name] =
+              (categoryStock[product.category_name] || 0) + product.stock_quantity;
+          }
+          productPriceData.push({ name: product.name, price: product.price });
+        });
+
+        const pieChartData = Object.keys(categoryStock).map((category) => ({
+          name: category,
+          value: categoryStock[category],
+        }));
+
+        setChartData(pieChartData);
+        setBarData(productPriceData);
+
+      } catch (error) {
+        console.error('Error fetching product data:', error);
+      }
+    };
+
+    const fetchStockTrendData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.get('http://127.0.0.1:8198/api/get_stock_trends/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setStockTrendData(response.data);
+
+      } catch (error) {
+        console.error('Error fetching stock trend data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Fetch both APIs separately
+    fetchProductData();
+    fetchStockTrendData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1 }}>
+      <Navbar />
+      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
+        Graphs
+      </Typography>
+
+      <Box sx={{ p: 3, mt: 2, display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+        {/* Pie Chart */}
+        <Card sx={{ boxShadow: 3, borderRadius: 2, mb: 3, width: '48%' }}>
+          <CardHeader title="Category vs Stock Quantity (Pie Chart)" />
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={120} fill="#8884d8" label>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getColor(index)} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Bar Chart */}
+        <Card sx={{ boxShadow: 3, borderRadius: 2, width: '48%' }}>
+          <CardHeader title="Product vs Price (Bar Chart)" />
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="price" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Line Chart for Stock Trend */}
+        <Card sx={{ boxShadow: 3, borderRadius: 2, width: '100%' }}>
+          <CardHeader title="Stock Trends Over Time (Line Chart)" />
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={stockTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="stock_quantity" stroke="#8884d8" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </Box>
+    </Box>
+  );
+}
+
+// Function to generate a color for each slice of the pie chart
+const getColor = (index) => {
+  const colors = ['#FF8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+  return colors[index % colors.length];
+};
+
+export default Graphs;
+      
