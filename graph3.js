@@ -214,3 +214,20 @@ def get_stock_trends(request):
     ]
 
     return Response(data)
+
+const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+
+        // Fetch dashboard data
+        const dashboardResponse = await axios.get(
+          'http://127.0.0.1:8198/api/inventory/dashboard',
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // Fetch alert data
+        const alertResponse = await axios.get(
+          'http://127.0.0.1:8198/api/inventory/alert',
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
