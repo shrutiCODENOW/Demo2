@@ -159,7 +159,7 @@ const Login = () => {
         sm={4}
         md={6}
         sx={{
-          backgroundImage: 'url("https://via.placeholder.com/600x400")', // Replace this with your logo image
+          backgroundImage: 'url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxdrnUrTfRZ4kK_sOqY0EElqfOFm8fkINfUw&s")', // Replace this with your logo image
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           display: 'flex',
