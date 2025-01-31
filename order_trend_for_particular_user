@@ -1,0 +1,15 @@
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_order_trend_month(request):
+    order_trend = (
+        Order.objects
+        .annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(total_orders=Count('id'))
+        .order_by('month')
+    )
+    data = [
+        {"month": entry["month"].strftime("%B %Y"), "total_orders": entry["total_orders"]}
+        for entry in order_trend if entry["month"] is not None
+    ]
+    return Response(data)
