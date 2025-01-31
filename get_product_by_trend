@@ -1,0 +1,30 @@
+name = models.CharField(max_length=100)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')
+    description = models.TextField(blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stock_quantity = models.IntegerField(default=0)
+    threshold=models.IntegerField()
+    #created_by=models.ForeignKey(User, on_delete=models.CASCADE,related_name='products',null=True,blank=True)
+    created_by=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='products',null=True,blank=True)
+    image = models.ImageField(upload_to='product_images/', blank=True, null=True)  # Image field
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stock_trends(request):
+    # Group by date (assuming there is a `updated_at` field in Product)
+    stock_trend = (
+        Product.objects
+        .annotate(date=TruncDate('updated_at'))  # Truncate to just date
+        .values('date')
+        .annotate(total_stock=Sum('stock_quantity'))
+        .order_by('date')
+    )
+
+    # Format response data
+    data = [
+        {"date": entry["date"].strftime("%Y-%m-%d"), "stock_quantity": entry["total_stock"]}
+        for entry in stock_trend if entry["date"] is not None
+    ]
+
+    return Response(data)
