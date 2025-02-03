@@ -31,6 +31,46 @@ def place_order(request):
     for item in items:
         product = Product.objects.get(id=item['productId'])
         OrderItem.objects.create(order=order, product=product, quantity=item['quantity'])
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_order_status(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+
+        new_status = request.data.get("status", "").upper()
+        if new_status not in ["PENDING", "DELIVERED"]:
+            return Response({"error": "Invalid status value."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if order.status == "DELIVERED":
+            return Response({"message": "Order is already delivered!"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If the order is being marked as delivered, update inventory
+        if new_status == "DELIVERED":
+            for item in order.items.all():
+                product = item.product
+                product.stock_quantity -= item.quantity
+                product.save()
+
+                # Log the inventory reduction
+                InventoryLog.objects.create(
+                    product=product,
+                    user=order.user,
+                    quantity=-item.quantity,  # Negative value to indicate reduction
+                    action="Order Delivered"
+                )
+
+        order.status = new_status
+        order.save()
+
+        return Response({
+            "message": f"Order status updated to {order.status}!",
+            "order_id": order.id,
+            "status": order.status,
+        }, status=status.HTTP_200_OK)
+
+    except Order.DoesNotExist:
+        return Response({"detail": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
         # Deduct stock
         # product.stock_quantity -= item['quantity']
         product.save()
