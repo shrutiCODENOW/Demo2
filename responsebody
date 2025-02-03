@@ -1,0 +1,38 @@
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def place_order(request):
+    user = request.user
+    data = request.data
+    items = data.get('items', [])
+    total_price = 0
+
+    # Calculate total price and validate products
+    for item in items:
+        try:
+            product = Product.objects.get(id=item['productId'])
+            if item['quantity'] > product.stock_quantity:
+                return Response(
+                    {"error": f"Not enough stock for {product.name}. Available: {product.stock_quantity}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            total_price += product.price * item['quantity']
+        except Product.DoesNotExist:
+            return Response({"error": f"Product with ID {item['productId']} not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Create order
+    order = Order.objects.create(
+        user=user,
+        customer_name=data.get('customerName'),
+        customer_phone_number=data.get('customerPhone'),
+        total_price=total_price,
+    )
+
+    # Add products to order
+    for item in items:
+        product = Product.objects.get(id=item['productId'])
+        OrderItem.objects.create(order=order, product=product, quantity=item['quantity'])
+        # Deduct stock
+        # product.stock_quantity -= item['quantity']
+        product.save()
+
+    return Response({"message": "Order placed successfully!"}, status=status.HTTP_201_CREATED)
