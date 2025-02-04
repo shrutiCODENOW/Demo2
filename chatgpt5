@@ -1,0 +1,20 @@
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stock_trends(request):
+    # Group by date (assuming there is a `updated_at` field in Product)
+    stock_trend = (
+        Product.objects
+        .filter(created_by=request.user)
+        .annotate(date=TruncDate('created_at'))  # Truncate to just date
+        .values('date')
+        .annotate(total_stock=Sum('stock_quantity'))
+        .order_by('date')
+    )
+
+    # Format response data
+    data = [
+        {"date": entry["date"].strftime("%Y-%m-%d"), "stock_quantity": entry["total_stock"]}
+        for entry in stock_trend if entry["date"] is not None
+    ]
+
+    return Response(data)
