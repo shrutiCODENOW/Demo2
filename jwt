@@ -1,0 +1,14 @@
+CORS_ALLOW_ALL_ORIGINS = True
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
+
+
+AUTH_USER_MODEL= 'inventory.CustomUser'
+
+MEDIA_URL= '/media/'
+MEDIA_ROOT=os.path.join(BASE_DIR,'media')
