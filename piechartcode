@@ -1,0 +1,22 @@
+const categoryStock = {};  // Object to store total stock per category
+        const productPriceData = [];  // Array to store product name and price
+
+
+        //Aggregate stock quantity by category
+        response.data.forEach((product) => {
+          // Filter by category name if it's provided
+          if (product.stock_quantity > 0 && (!categoryName || product.category_name === categoryName)) {
+            if (categoryStock[product.category_name]) {
+              categoryStock[product.category_name] += product.stock_quantity;
+            } else {
+              categoryStock[product.category_name] = product.stock_quantity;
+            }
+          }
+          productPriceData.push({ name: product.name, price: product.price });
+        });
+
+        // Transforming the aggregated category data for Pie Chart
+        const chartData = Object.keys(categoryStock).map((category) => ({
+          name: category,               // Category name
+          value: categoryStock[category], // Total stock quantity in that category
+        }));
